@@ -1,0 +1,261 @@
+###########################
+#CS 312                   #
+#Fibonacci Sequences      #
+#656 - Melissa Jameson    #
+###########################
+
+.data
+
+ENTER_FIB:      	.asciiz    "Enter a valid Fibonacci number: "
+ENTER_ITERATIONS:	.asciiz    "Enter the number of Fibonacci numbers to be displayed: "
+INVALID:		.asciiz    "is not a valid Fibonacci number. \n"
+SPACE:			.asciiz    " "
+ENTER:			.asciiz    "\n"
+TAB:			.asciiz    "    "
+Fib1:			.word      1
+Fib2:			.word      0
+USER_FIB:		.word      0
+ITERATIONS:		.word	   0
+
+.text
+
+.globl main
+
+
+
+
+main:
+
+#create stack frame
+subu $sp, $sp, 32
+
+#save registers
+sw $ra, 8($sp)
+sw $fp, 4($sp)
+
+#set up new frame pointer
+addu $fp, $sp, 28
+
+#save other registers
+sw $s0, 12($sp)
+sw $s1, 16($sp)
+sw $s3, 24($sp)
+
+#asks for fibonacci number
+li $v0, 4
+la $a0, ENTER_FIB
+syscall
+
+#takes user's fibonacci number
+li $v0, 5 #load system call to take integer
+syscall
+sw $v0, USER_FIB #take input and store in userfib
+
+#try again if input is < 1
+blt $v0, 1, error
+
+#asks for iteration count
+li $v0, 4
+la $a0, ENTER_ITERATIONS
+syscall
+
+#takes user's iteration count
+li $v0, 5 #load system call to take integer
+syscall
+sw $v0, ITERATIONS #take input and store in iterations
+
+#s0 = fib1
+la $s0, Fib1
+lw $s0, ($s0)
+
+#$s1 = fib2
+la $s1, Fib2
+lw $s1, ($s1)
+
+jal check_input
+
+#release other registers
+lw $s0, 12($sp)
+lw $s1, 16($sp)
+lw $s3, 24($sp)
+
+#restore SP FP ra for caller
+lw $ra, 8($sp)
+lw $fp, 4($sp)
+
+#restore the caller's stack pointer
+addu $sp, $sp, 32
+
+jr $31
+
+
+
+
+check_input:
+#checks if input is a fibonacci number
+
+#create stack frame
+subu $sp, $sp, 32
+
+#save registers
+sw $ra, 8($sp)
+sw $fp, 4($sp)
+
+#set up new frame pointer
+addu $fp, $sp, 28
+
+#save other registers
+sw $s0, 12($sp)
+sw $s1, 16($sp)
+sw $s3, 24($sp)
+
+#$s4=user's fibonacci number
+la $s4, USER_FIB
+lw $s4, ($s4)
+
+#goal=fib1+fib2
+add $s3, $s0, $s1
+
+#fib2=fib1
+move $s1, $s0
+
+#fib1=goal
+move $s0, $s3
+
+#if goal>userfib, error
+bgt $s3, $s4, error
+
+#if goal==userfib, start outputting sequence
+beq $s3, $s4, output
+
+#recursive function
+jal check_input
+
+
+
+
+output:
+#returns quantity of fibonacci numbers requested
+
+#get iterations
+la $s2, ITERATIONS
+lw $s2, ($s2)
+
+#stops outputting numbers once iterations count reaches zero
+blt $s2, 1, ra
+
+#output fib
+li $v0, 1
+move $a0, $s3
+syscall
+
+#calculate new iterations
+sub $s2, $s2, 1
+
+#save iterations
+sw $s2, ITERATIONS #take input and store in iterations
+
+#if fibonacci sequences reaches one, end the sequence
+beq $s3, 1, endSequence
+
+j space
+
+
+
+
+space:
+#space bar - weird to have it as a separate function,
+#but if I make this a part of the output function,
+#it outputs random numbers for some reason
+
+li $v0, 4
+la $a0, SPACE
+syscall
+
+j ra
+
+
+
+
+endSequence:
+#ends sequence with a 1 if there are more iterations lefts
+
+#get iterations
+la $s2, ITERATIONS
+lw $s2, ($s2)
+
+#doesn't output 1 if $s2 has already reached 0
+beq $s2, 0, ra
+
+li $v0, 4
+la $a0, SPACE
+syscall
+
+#outputs 1
+li $v0, 1
+li $a0, 1
+syscall
+
+li $v0, 4
+la $a0, ENTER
+syscall
+
+j ra
+
+
+
+
+error:
+#outputs error message and lets user try again
+
+li $v0, 4
+la $a0, ENTER
+syscall
+
+li $v0, 4
+la $a0, TAB
+syscall
+
+#outputs userfib
+li $v0, 1 #load value for print_int 
+la $a1, USER_FIB #copies address of userfib into a1
+lw $a0, ($a1) #loads word at a1 into a0
+syscall #print $a1 to screen 
+
+#space bar
+li $v0, 4
+la $a0, SPACE
+syscall
+
+#outputs error text
+li $v0, 4
+la $a0, INVALID
+syscall
+
+#enter key
+li $v0, 4
+la $a0, ENTER
+syscall
+
+#retry
+j main
+
+
+
+
+ra:
+#release stack and return
+
+#restore other registers
+lw $s0, 12($sp)
+lw $s1, 16($sp)
+lw $s3, 24($sp)
+
+#restore SP FP ra for caller
+lw $ra, 8($sp)
+lw $fp, 4($sp)
+
+#restore the caller's stack pointer
+addu $sp, $sp, 32
+
+jr $ra
