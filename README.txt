@@ -1,3 +1,1 @@
-Assembly program to recursively output a user defined number of fibonacci numbers.
-
-Created for CS 312 - Computer Architecture at SIUE
+Computer architecture project for recursively outputting a user defined number of Fibonacci numbers
